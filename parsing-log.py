@@ -7,15 +7,19 @@ Created on Thu Dec 14 11:29:32 2023
 
 import os
 import pandas as pd
-import re
+
 
 def extract_folder_name(path):
-    # 使用正則表達式擷取路徑中 "TT\"到下一個"\"中間的文字
-    match = re.search(r'\\TT\\([^\\]+)', path)
-    if match:
-        return match.group(1)
-    else:
-        return ''  # 如果找不到匹配，返回空字符串
+    # 尋找 "TT\" 的位置
+    start_index = path.find('TT\\')
+    
+    # 如果找到 "TT\"，則在這個位置後尋找下一個反斜線 "\"
+    if start_index != -1:
+        end_index = path.find('\\', start_index + 3)
+        if end_index != -1:
+            return path[start_index + 3:end_index]
+    
+    return ''  # 如果找不到匹配，返回空字符串
 
 def count_backslashes(path):
     # 計算路徑中反斜線的數量
@@ -45,10 +49,10 @@ def list_files_and_directories_to_csv(path, output_csv_path):
         print(f'發生錯誤: {e}')
 
 # 輸入你的路徑
-path = r'\\cgcfsii\Confidential\97_Test Result\Google\NBP90X\TTT'  # 請替換為你的實際路徑
+path = r'\\cgcfsii\Confidential\97_Test Result\Google\NBPB00\TTT'  # 請替換為你的實際路徑
 
 # 指定要保存的 CSV 檔案路徑
-output_csv_path = r'C:\Users\chienhuak\Desktop\testG.csv'  # 請替換為你想要保存的路徑
+output_csv_path = r'C:\Users\chienhuak\Desktop\testJ.csv'  # 請替換為你想要保存的路徑
 
 # 呼叫函數，將檔案清單保存到 CSV 檔案
 list_files_and_directories_to_csv(path, output_csv_path)
