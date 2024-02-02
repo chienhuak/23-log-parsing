@@ -1,13 +1,18 @@
 # -*- coding: utf-8 -*-
 """
-Created on Mon Dec 18 15:33:46 2023
+Created on Fri Dec 22 11:56:30 2023
 
 @author: chienhuak
 """
 
+
 import os
 import pandas as pd
 from bs4 import BeautifulSoup
+
+def count_backslashes(path):
+    # 計算路徑中反斜線的數量
+    return path.count('\\')
 
 def extract_folder_name(path):
     # 尋找 "TT\" 的位置
@@ -21,10 +26,6 @@ def extract_folder_name(path):
     
     return ''  # 如果找不到匹配，返回空字符串
 
-def count_backslashes(path):
-    # 計算路徑中反斜線的數量
-    return path.count('\\')
-
 def extract_info_from_html(file_path):
     try:
         with open(file_path, 'r', encoding='utf-8') as file:
@@ -33,34 +34,39 @@ def extract_info_from_html(file_path):
 
             # 尋找 Test case ID
             test_case_id_tag = soup.find('div', id='title')
-            test_case_id = test_case_id_tag.text.split('—')[-1].strip() if test_case_id_tag else ''
+            test_case_id = test_case_id_tag.text.split('—')[0].strip() if test_case_id_tag and test_case_id_tag.text else ''
 
             # 尋找 Band 和 Configuration
             config_tag = soup.find('div', id='summary_configuration')
-            config_text = config_tag.text if config_tag else ''
+            config_text = config_tag.text if config_tag and config_tag.text else ''
             band, configuration = map(str.strip, config_text.split(';')[:2])
 
-            # 尋找 Result
-            result_tag = soup.find('p', class_='result')
-            result = result_tag.find('span', class_='verdict_fail').text.strip() if result_tag else ''
 
-            return test_case_id, band, configuration, result
+            # 尋找 Result
+            result_tag = soup.find('div', id='summary_verdict')
+            result_text = result_tag.text.strip() if result_tag and result_tag.text else ''
+            
+            
+            return test_case_id, band, configuration, result_text
 
     except Exception as e:
         print(f'解析 HTML 時發生錯誤: {e}')
         return '', '', '', ''
 
+
 def list_files_and_directories_to_csv(path, output_csv_path):
     try:
         # 使用os.walk獲取目錄結構
-        data = {'目錄': [], '檔案名稱': [], '副檔名': [], 'Test case ID': [], 'Band': [], 'Configuration': [], 'Result': [], '反斜線數量': []}
+        data = {'Path': [], 'File Name': [], 'File Types': [], 'TP': [],'Test case ID': [], 'Band': [], 'Configuration': [], 'Result': [], 'Count /': []}
         for root, dirs, files in os.walk(path):
-            for file in files:
+            # 過濾檔案名稱為'OnlineReport'的檔案
+            online_report_files = [file for file in files if file.lower() == 'onlinereport.htm']
+            for file in online_report_files:
                 file_path = os.path.join(root, file)
-                data['目錄'].append(root)
-                data['檔案名稱'].append(os.path.splitext(file)[0])  # 取得檔案名稱
-                data['副檔名'].append(os.path.splitext(file)[1])  # 取得副檔名
-                data['反斜線數量'].append(count_backslashes(root))  # 計算反斜線數量
+                data['Path'].append(root)
+                data['File Name'].append(os.path.splitext(file)[0])  # 取得檔案名稱
+                data['File Types'].append(os.path.splitext(file)[1])  # 取得副檔名
+                data['TP'].append(extract_folder_name(root))  # 擷取資訊
 
                 # 擷取 HTML 中的資訊
                 test_case_id, band, configuration, result = extract_info_from_html(file_path)
@@ -69,7 +75,7 @@ def list_files_and_directories_to_csv(path, output_csv_path):
                 data['Band'].append(band)
                 data['Configuration'].append(configuration)
                 data['Result'].append(result)
-                
+                data['Count /'].append(count_backslashes(root))  # 計算反斜線數量
 
         # 將數據轉換成 DataFrame
         df = pd.DataFrame(data)
@@ -82,11 +88,12 @@ def list_files_and_directories_to_csv(path, output_csv_path):
     except Exception as e:
         print(f'發生錯誤: {e}')
 
-# 輸入你的路徑
-path = r'\\cgcfsii\Confidential\97_Test Result\Google\NBPB00\TTT'  # 請替換為你的實際路徑
 
-# 指定要保存的 CSV 檔案路徑
-output_csv_path = r'C:\Users\chienhuak\Desktop\testL.csv'  # 請替換為你想要保存的路徑
+# 輸入你的路徑
+path = r'\\cgcfsii\Confidential\97_Test Result\Google\NBPB00\TTT\298(b)\20230318'  # 請替換為你的實際路徑
+
+# 按需指定要保存的 CSV 檔案路徑
+output_csv_path = r'C:\Users\chienhuak\Desktop\testM.csv'  # 請替換為你想要保存的路徑
 
 # 呼叫函數，將檔案清單保存到 CSV 檔案
 list_files_and_directories_to_csv(path, output_csv_path)
